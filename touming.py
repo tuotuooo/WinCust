@@ -1,85 +1,126 @@
-import tkinter as tk
-from tkinter import ttk
-from tkinter import messagebox
 import win32gui
-import win32con
 import win32process
+import win32con
+import tkinter as tk
+from tkinter import ttk, messagebox
+import sys
+import os
 
-def get_expanded_windows_info():
-    windows_info = []
+# 获取可执行文件所在的路径
+base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+# 加载图标文件
+icon_path = os.path.join(base_path, '1.ico')
 
-    def callback(hwnd, windows_info):
-        if win32gui.IsWindowVisible(hwnd) and win32gui.IsWindow(hwnd):
-            title = win32gui.GetWindowText(hwnd).strip()
-            if title:
-                _, pid = win32process.GetWindowThreadProcessId(hwnd)
-                windows_info.append((title, pid))
+def enum_windows_callback(hwnd, windows):
+    # 检查窗口是否可见
+    if win32gui.IsWindowVisible(hwnd):
+        # 获取窗口标题
+        title = win32gui.GetWindowText(hwnd)
 
-    win32gui.EnumWindows(callback, windows_info)
-    return windows_info
+        # 检查窗口标题是否为空
+        if title:
+            # 获取窗口进程ID
+            _, pid = win32process.GetWindowThreadProcessId(hwnd)
 
-def set_window_transparency(pid, transparency):
-    hwnd = None
+            # 将窗口信息添加到列表中
+            windows.append((title, pid, hwnd))
 
-    def callback(hwnd, hwnds):
-        if win32gui.IsWindowVisible(hwnd) and win32gui.GetWindow(hwnd, win32con.GW_OWNER) == 0 and win32process.GetWindowThreadProcessId(hwnd)[1] == pid:
-            hwnds.append(hwnd)
+    return True
 
-    hwnds = []
-    win32gui.EnumWindows(callback, hwnds)
-    if hwnds:
-        hwnd = hwnds[0]
+def search_windows():
+    # 创建一个空列表来存储窗口信息
+    windows = []
 
-    if hwnd:
-        win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE) | win32con.WS_EX_LAYERED)
-        win32gui.SetLayeredWindowAttributes(hwnd, 0, transparency, win32con.LWA_ALPHA)
-    else:
-        messagebox.showerror("错误", "未找到目标窗口")
+    # 调用EnumWindows函数遍历所有窗口
+    win32gui.EnumWindows(enum_windows_callback, windows)
 
-def main():
-    def on_apply_button_click():
-        try:
-            pid = int(pid_entry.get())
-            transparency = int(transparency_entry.get())
-            set_window_transparency(pid, transparency)
-        except ValueError:
-            messagebox.showerror("错误", "请输入有效的PID和透明度")
+    return windows
 
-    def update_window_info():
-        window_info_text.delete(1.0, tk.END)
-        expanded_windows_info = get_expanded_windows_info()
-        for title, pid in expanded_windows_info:
-            window_info_text.insert(tk.END, f"应用窗口的标题: {title}\nPID: {pid}\n\n")
+def set_window_opacity(hwnd, opacity):
+    # 修改窗口样式，使其支持透明度
+    win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE,
+                           win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE) | win32con.WS_EX_LAYERED)
 
-    root = tk.Tk()
-    root.title("窗口透明度调节")
-    root.geometry("400x400")
+    # 设置窗口透明度
+    win32gui.SetLayeredWindowAttributes(hwnd, 0, int(opacity * 255), win32con.LWA_ALPHA)
 
-    window_info_label = ttk.Label(root, text="搜索可视窗口信息")
-    window_info_label.pack(pady=10)
+def on_search_button_click():
+    # 清空下拉菜单选项
+    window_dropdown['menu'].delete(0, 'end')
 
-    window_info_text = tk.Text(root, height=10, width=40)
-    window_info_text.pack()
+    # 搜索窗口
+    windows = search_windows()
 
-    update_button = ttk.Button(root, text="更新信息", command=update_window_info)
-    update_button.pack(pady=10)
+    # 将窗口信息添加到下拉菜单中
+    for title, pid, hwnd in windows:
+        menu_label = f"{title} (PID: {pid}, 句柄: {hwnd})"
+        window_dropdown['menu'].add_command(label=menu_label, command=lambda title=title, hwnd=hwnd: on_window_selected(title, hwnd))
 
-    pid_label = ttk.Label(root, text="PID:")
-    pid_label.pack()
+    # 隐藏默认数据
+    window_var.set("数据已更新")
 
-    pid_entry = ttk.Entry(root)
-    pid_entry.pack()
+def on_window_selected(title, hwnd):
+    # 设置下拉菜单的选中内容
+    window_var.set(title)
 
-    transparency_label = ttk.Label(root, text="透明度(0-255):")
-    transparency_label.pack()
+    # 保存选中的窗口信息
+    selected_window['title'] = title
+    selected_window['hwnd'] = hwnd
 
-    transparency_entry = ttk.Entry(root)
-    transparency_entry.pack()
+def on_opacity_slider_changed(value):
+    # 更新透明度标签
+    opacity_label['text'] = f'透明度（0.0-1.0）：{value}'
 
-    apply_button = ttk.Button(root, text="应用", command=on_apply_button_click)
-    apply_button.pack(pady=10)
+def on_set_opacity_button_click():
+    # 获取选中的窗口信息
+    title = selected_window['title']
+    hwnd = selected_window['hwnd']
 
-    root.mainloop()
+    # 获取滑块的值
+    opacity = opacity_slider.get()
 
-if __name__ == "__main__":
-    main()
+    try:
+        # 设置窗口透明度
+        set_window_opacity(hwnd, float(opacity))
+
+        # 在选定的窗口上显示设置结果
+        messagebox.showinfo('设置结果', f'已将透明度设置为 {opacity}，应用于窗口：{title}\n窗口句柄：{hwnd}')
+    except Exception as e:
+        messagebox.showerror('错误', f'无法设置窗口透明度：{str(e)}')
+
+# 创建主窗口
+root = tk.Tk()
+root.title('窗口透明度设置')
+root.geometry('300x300')
+
+# 设置窗口图标
+root.iconbitmap(icon_path)
+
+# 创建搜索按钮
+search_button = tk.Button(root, text='搜索窗口', command=on_search_button_click)
+search_button.pack(pady=10)
+
+# 创建窗口下拉菜单
+window_var = tk.StringVar()
+window_var.set("请先点击“搜索窗口”获取信息")
+window_dropdown = ttk.OptionMenu(root, window_var, '')
+window_dropdown.pack(fill=tk.X, padx=50, pady=10)
+
+# 创建透明度滑块
+opacity_label = tk.Label(root, text='透明度（0.0-1.0）：0.0')
+opacity_label.pack()
+opacity_slider = tk.Scale(root, from_=0.0, to=1.0, resolution=0.1, orient=tk.HORIZONTAL, command=on_opacity_slider_changed)
+opacity_slider.pack(padx=10, pady=10)
+
+# 创建设置透明度按钮
+set_opacity_button = tk.Button(root, text='设置透明度', command=on_set_opacity_button_click)
+set_opacity_button.pack(pady=10)
+
+# 保存选中的窗口信息
+selected_window = {'title': '', 'hwnd': 0}
+
+# 设置下拉菜单的背景色为纯白色
+window_dropdown['menu'].config(bg='white')
+
+# 运行主循环
+root.mainloop()
