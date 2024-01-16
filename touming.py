@@ -44,6 +44,13 @@ def set_window_opacity(hwnd, opacity):
     # 设置窗口透明度
     win32gui.SetLayeredWindowAttributes(hwnd, 0, int(opacity * 255), win32con.LWA_ALPHA)
 
+def set_window_topmost(hwnd):
+    # 将窗口置顶
+    win32gui.SetWindowPos(hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
+def unset_window_topmost(hwnd):
+    # 取消窗口置顶
+    win32gui.SetWindowPos(hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
+
 def on_search_button_click():
     # 清空下拉菜单选项
     window_dropdown['menu'].delete(0, 'end')
@@ -87,10 +94,35 @@ def on_set_opacity_button_click():
         messagebox.showinfo('设置结果', f'已将透明度设置为 {opacity}，应用于窗口：{title}\n窗口句柄：{hwnd}')
     except Exception as e:
         messagebox.showerror('错误', f'无法设置窗口透明度：{str(e)}')
+def on_set_topmost_button_click():
+    # 获取选中的窗口信息
+    title = selected_window['title']
+    hwnd = selected_window['hwnd']
 
+    try:
+        # 设置窗口透明度
+        set_window_topmost(hwnd)
+
+        # 在选定的窗口上显示设置结果
+        messagebox.showinfo('设置结果', f'已将窗口设置为 置顶，应用于窗口：{title}\n窗口句柄：{hwnd}')
+    except Exception as e:
+        messagebox.showerror('错误', f'无法设置窗口置顶：{str(e)}')
+def on_unset_topmost_button_click():
+    # 获取选中的窗口信息
+    title = selected_window['title']
+    hwnd = selected_window['hwnd']
+
+    try:
+        # 设置窗口透明度
+        unset_window_topmost(hwnd)
+
+        # 在选定的窗口上显示设置结果
+        messagebox.showinfo('设置结果', f'已取消窗口设置为 置顶，应用于窗口：{title}\n窗口句柄：{hwnd}')
+    except Exception as e:
+        messagebox.showerror('错误', f'无法取消窗口置顶：{str(e)}')
 # 创建主窗口
 root = tk.Tk()
-root.title('窗口透明度设置')
+root.title('moyu-tmzd')
 root.geometry('300x300')
 
 # 设置窗口图标
@@ -115,6 +147,15 @@ opacity_slider.pack(padx=10, pady=10)
 # 创建设置透明度按钮
 set_opacity_button = tk.Button(root, text='设置透明度', command=on_set_opacity_button_click)
 set_opacity_button.pack(pady=10)
+#设置框架限制
+frame = tk.Frame(root)
+frame.pack(after=set_opacity_button)
+#置顶
+set_topmost_button = tk.Button(frame, text='设置置顶', command=on_set_topmost_button_click)
+set_topmost_button.pack(padx=10,pady=10,side="left")
+#置顶取消
+unset_topmost_button = tk.Button(frame, text='取消置顶', command=on_unset_topmost_button_click)
+unset_topmost_button.pack(padx=10,pady=10,side="left")
 
 # 保存选中的窗口信息
 selected_window = {'title': '', 'hwnd': 0}
