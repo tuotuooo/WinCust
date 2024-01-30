@@ -13,9 +13,9 @@
 针对windows开发
 
 ### 开发环境
-[ **windows11**  ]
+- **windows11**
 
-[ **python3.10** ] 
+- **python3.10**
 
 ### 项目进展
 
