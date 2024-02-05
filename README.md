@@ -9,9 +9,9 @@
 
 ### 项目进展
 
-`1/2/3`已打包为`moyu-tmzd.exe`。
+[`1/2/3`功能]*已打包为*`moyu-tmzd.exe`。
 
-`4`已打包为`moyu-gs.exe`。
+[`4`功能]*已打包为*`moyu-gs.exe`。
 
 ### 适用平台
 - **windows**
