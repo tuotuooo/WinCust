@@ -7,18 +7,18 @@
 
 4.[ 跟随其他窗口移动 ]
 
-后续....
+### 项目进展
+
+`1/2/3`已打包为`moyu-tmzd.exe`。
+
+`4`已打包为`moyu-gs.exe`。
 
 ### 适用平台
-针对windows开发
+- **windows**
 
 ### 开发环境
 - **windows11**
 
 - **python3.10**
 
-### 项目进展
 
-`1/2/3`已打包为`moyu-tmzd.exe`。
-
-`4`已打包为`moyu-gs.exe`。
